@@ -13,6 +13,7 @@ contract SupplyChainNFT is ERC721, Ownable {
         string metadataURI; // description + production_date
         string currentStatus;
         address supplier;
+        address currentHolder;
         uint256 createdAt;
     }
 
@@ -21,30 +22,32 @@ contract SupplyChainNFT is ERC721, Ownable {
     uint256 public nextTokenId = 1;
     uint256 public mintFee = 0.001 ether;
 
-    // deklarasi event
     event ProductMinted(uint256 tokenId, string name, string batchNumber, address supplier);
     event StatusUpdated(uint256 tokenId, string newStatus);
     event SupplierAdded(address supplier);
     event SupplierRemoved(address supplier);
+    event StatusUpdated(
+        uint256 tokenId,
+        address from,
+        address to,
+        string newStatus
+    );
 
     constructor() ERC721("SupplyChainNFT", "SCNFT") Ownable(msg.sender) {
     }
 
-    // tambah supplier baru oleh admin/pusat
     function addSupplier(address _supplier) external onlyOwner {
         require(_supplier != address(0), "Invalid address");
         verifiedSuppliers[_supplier] = true;
         emit SupplierAdded(_supplier);
     }
 
-    // hapus supplier oleh admin/pusat
     function removeSupplier(address _supplier) external onlyOwner {
         require(verifiedSuppliers[_supplier], "Supplier not found");
         verifiedSuppliers[_supplier] = false;
         emit SupplierRemoved(_supplier);
     }
 
-    // mint NFT baru oleh supplier resmi
     function mintProduct(string calldata _name, string calldata _origin, string calldata _batchNumber, uint256 _quantityKg, string calldata _metadataURI) external payable {
         require(msg.value >= mintFee, "Mint fee required");
         require(verifiedSuppliers[msg.sender], "Not a verified supplier");
@@ -65,6 +68,7 @@ contract SupplyChainNFT is ERC721, Ownable {
             metadataURI: _metadataURI, // description + production_date
             currentStatus: "Created by supplier",
             supplier: msg.sender,
+            currentHolder: msg.sender,
             createdAt: block.timestamp
         });
 
@@ -83,17 +87,18 @@ contract SupplyChainNFT is ERC721, Ownable {
         emit ProductMinted(tokenId, _name, _batchNumber, msg.sender);
     }
 
-    // update status hanya boleh oleh supplier asli atau pemilik token saat ini
-    function updateStatus(uint256 _tokenId, string memory _newStatus) external {
-        require(
-            msg.sender == ownerOf(_tokenId) || msg.sender == products[_tokenId].supplier,
-            "Not authorized"
-        );
+    function transferProduct(uint256 _tokenId, address _to, string memory _newStatus) external {
+        require(ownerOf(_tokenId) == msg.sender, "Not token owner");
+        require(_to != address(0), "Invalid receiver");
+
+        // transfer NFT
+        safeTransferFrom(msg.sender, _to, _tokenId);
+
+        products[_tokenId].currentHolder = _to;
         products[_tokenId].currentStatus = _newStatus;
-        emit StatusUpdated(_tokenId, _newStatus);
+        emit StatusUpdated(_tokenId, msg.sender, _to, _newStatus);
     }
 
-    // dapatkan detail produk
     function getProduct(uint256 _tokenId) external view returns (Product memory) {
         return products[_tokenId];
     }
