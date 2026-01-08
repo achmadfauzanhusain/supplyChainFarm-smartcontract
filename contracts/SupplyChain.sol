@@ -19,7 +19,7 @@ contract SupplyChainNFT is ERC721, Ownable {
     mapping(uint256 => Product) public products;
     mapping(address => bool) public verifiedSuppliers; // daftar supplier resmi
     uint256 public nextTokenId = 1;
-    uint256 mintFee = 0.001 ether;
+    uint256 public mintFee = 0.001 ether;
 
     // deklarasi event
     event ProductMinted(uint256 tokenId, string name, string batchNumber, address supplier);
