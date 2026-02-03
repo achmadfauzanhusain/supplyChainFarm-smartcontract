@@ -1,57 +1,68 @@
-# Sample Hardhat 3 Beta Project (`mocha` and `ethers`)
+# SupplyChainNFT — Technical Documentation (Audit-Oriented)
 
-This project showcases a Hardhat 3 Beta project using `mocha` for tests and the `ethers` library for Ethereum interactions.
+SupplyChainNFT is an ERC-721 smart contract designed to represent real-world supply chain products as NFTs.  
+This document focuses on **technical architecture, access control, state transitions, and security considerations** to support auditing and formal review.
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+---
 
-## Project Overview
+## Contract Summary
 
-This example project includes:
+- **Name:** SupplyChainNFT
+- **Standard:** ERC-721
+- **Solidity Version:** ^0.8.28
+- **Libraries:** OpenZeppelin ERC721, Ownable
+- **Mint Fee:** 0.0005 ETH
+- **Network:** EVM-compatible
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using `mocha` and ethers.js
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+---
 
-## Usage
+## Architecture Overview
 
-### Running Tests
+Each product is represented by **one ERC-721 token**.  
+Product metadata and supply chain state are stored on-chain in a `Product` struct mapped to `tokenId`.
 
-To run all the tests in the project, execute the following command:
+High-level flow:
+1. Owner registers verified suppliers
+2. Verified supplier mints product NFT
+3. NFT is transferred between actors
+4. Product status is updated on each transfer
 
-```shell
-npx hardhat test
+---
+
+## Data Structures
+
+### Product Struct
+
+```solidity
+struct Product {
+    string name;
+    string origin;
+    string batch_number;
+    uint256 quantity_kg;
+    string metadataURI;
+    string currentStatus;
+    address supplier;
+    address currentHolder;
+    uint256 createdAt;
+}
 ```
 
-You can also selectively run the Solidity or `mocha` tests:
+### Storage Variables
+| Variable            | Type                        | Description                     |
+| ------------------- | --------------------------- | ------------------------------- |
+| `products`          | mapping(uint256 => Product) | Stores product data per tokenId |
+| `verifiedSuppliers` | mapping(address => bool)    | Whitelisted suppliers           |
+| `nextTokenId`       | uint256                     | Auto-increment token ID         |
+| `mintFee`           | uint256                     | Required ETH fee to mint        |
 
-```shell
-npx hardhat test solidity
-npx hardhat test mocha
-```
+### Access Control
+| Function          | Access            |
+| ----------------- | ----------------- |
+| `addSupplier`     | Contract Owner    |
+| `removeSupplier`  | Contract Owner    |
+| `mintProduct`     | Verified Supplier |
+| `transferProduct` | Token Owner       |
 
-### Make a deployment to Sepolia
-
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
-
-To run the deployment to a local chain:
-
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
-```
-
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
-
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
-
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
-
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
-```
-
-After setting the variable, you can run the deployment with the Sepolia network:
-
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+Access control is enforced via:
+Ownable (OpenZeppelin)
+Explicit require checks
