@@ -1,4 +1,4 @@
-# SupplyChainNFT — Technical Documentation (Audit-Oriented)
+# SupplyChainNFT — Technical Documentation
 
 SupplyChainNFT is an ERC-721 smart contract designed to represent real-world supply chain products as NFTs.  
 This document focuses on **technical architecture, access control, state transitions, and security considerations** to support auditing and formal review.
